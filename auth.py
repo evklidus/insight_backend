@@ -54,7 +54,7 @@ class AuthHandler:
         return encoded_jwt
 
     @staticmethod
-    def decode_token(token):
+    def decode_token(token: str):
         try:
             decoded_token = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             username = decoded_token.get("sub")

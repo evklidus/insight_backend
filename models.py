@@ -15,23 +15,27 @@ class User(BaseModel):
 class UserInDB(User):
     hashed_password: str
 
+    def to_user(self):
+        return User(username=self.username)
+
+
 class Category(BaseModel):
     name: str
-    imageUrl: str
+    image_url: str
     tag: str
 
 class CoursePreview(BaseModel):
     id: int
-    imageUrl: str
+    image_url: str
     name: str
     tag: str
 
 class Lesson(BaseModel):
     name: str
-    videoUrl: str
+    video_url: str
 
 class CoursePage(BaseModel):
     id: int
-    imageUrl: str
+    image_url: str
     name: str
     lessons: List[Lesson]

@@ -26,8 +26,7 @@ async def register(username: str, password: str):
 
 @app.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = User(username=form_data.username, password=form_data.password)
-    if not (authenticated_user := AuthHandler.authenticate_user(user)):
+    if not (authenticated_user := AuthHandler.authenticate_user(form_data.username, form_data.password)):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = AuthHandler.create_access_token(
@@ -37,8 +36,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/get_user")
-async def get_user(user_data: dict = Depends(oauth2_scheme)):
-    token_data = AuthHandler.decode_token(user_data["token"])
+async def get_user(token: str = Depends(oauth2_scheme)):
+    token_data = AuthHandler.decode_token(token)
     authenticated_user = fake_users_db.get(token_data["username"])
     if not authenticated_user:
         raise HTTPException(status_code=400, detail="Could not validate credentials")
@@ -65,19 +64,19 @@ async def login_for_access_token(
 
 
 categories = [
-    Category(name= "Спорт", imageUrl= "https://images.unsplash.com/photo-1518611012118-696072aa579a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=3540&q=80", tag= "sport"),
-    Category(name= "Программирование", imageUrl= "https://images.unsplash.com/photo-1605379399642-870262d3d051?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=3893&q=80", tag= "programming")
+    Category(name= "Спорт", image_url= "https://images.unsplash.com/photo-1518611012118-696072aa579a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=3540&q=80", tag= "sport"),
+    Category(name= "Программирование", image_url= "https://images.unsplash.com/photo-1605379399642-870262d3d051?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=3893&q=80", tag= "programming")
 ]
 
 coursePreviews = [
-    CoursePreview(id= 1, imageUrl= "https://www.apple.com/v/apple-fitness-plus/l/images/meta/apple-fitness-plus__eafl9rq9woom_og.png", name= "Пилатес от Веты", tag= "sport"),
-    CoursePreview(id= 2, imageUrl= "https://avatars.yandex.net/get-music-content/118603/e9de54a9.p.4465783/m1000x1000", name= "Mr. Miyagi", tag= "sport"),
-    CoursePreview(id= 3, imageUrl= "https://logowik.com/content/uploads/images/flutter5786.jpg", name= "Flutter", tag= "programming")
+    CoursePreview(id= 1, image_url= "https://www.apple.com/v/apple-fitness-plus/l/images/meta/apple-fitness-plus__eafl9rq9woom_og.png", name= "Пилатес от Веты", tag= "sport"),
+    CoursePreview(id= 2, image_url= "https://avatars.yandex.net/get-music-content/118603/e9de54a9.p.4465783/m1000x1000", name= "Mr. Miyagi", tag= "sport"),
+    CoursePreview(id= 3, image_url= "https://logowik.com/content/uploads/images/flutter5786.jpg", name= "Flutter", tag= "programming")
 ]
 
 coursePages = [
-    CoursePage(id= 1, imageUrl= "https://media1.popsugar-assets.com/files/thumbor/v8KPX6IRPz1wie9wQvhB4iYTdcw/fit-in/2048xorig/filters:format_auto-!!-:strip_icc-!!-/2018/07/30/638/n/1922564/8d1b02c5595eaf1f_GettyImages-1007595384/i/Kim-Kardashian-Blue-PVC-Heels-From-Yeezy.jpg", name= "Пилатес от Веты", lessons= [Lesson(name= "Первый день", videoUrl= "http://0.0.0.0:8080/videos/0")]),
-    CoursePage(id= 2, imageUrl= "https://news.store.rambler.ru/img/dc3b4493acdf7bb2208582027eb15ebd?img-format=auto&img-1-resize=height:355,fit:max&img-2-filter=sharpen", name= "Mr. Miyagi", lessons= [Lesson(name= "Minor", videoUrl= "http://0.0.0.0:8080/videos/1")])
+    CoursePage(id= 1, image_url= "https://media1.popsugar-assets.com/files/thumbor/v8KPX6IRPz1wie9wQvhB4iYTdcw/fit-in/2048xorig/filters:format_auto-!!-:strip_icc-!!-/2018/07/30/638/n/1922564/8d1b02c5595eaf1f_GettyImages-1007595384/i/Kim-Kardashian-Blue-PVC-Heels-From-Yeezy.jpg", name= "Пилатес от Веты", lessons= [Lesson(name= "Первый день", video_url= "http://0.0.0.0:8080/videos/0")]),
+    CoursePage(id= 2, image_url= "https://news.store.rambler.ru/img/dc3b4493acdf7bb2208582027eb15ebd?img-format=auto&img-1-resize=height:355,fit:max&img-2-filter=sharpen", name= "Mr. Miyagi", lessons= [Lesson(name= "Minor", video_url= "http://0.0.0.0:8080/videos/1")])
 ]
 
 videos = [
