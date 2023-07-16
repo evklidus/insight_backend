@@ -3,6 +3,7 @@ from typing import List
 from typing import Optional
 
 class User(BaseModel):
+    id: int
     username: str
     email: Optional[str]
     avatar_url: Optional[str]

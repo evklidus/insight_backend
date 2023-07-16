@@ -1,87 +1,26 @@
 from typing import Annotated, Optional
-from fastapi import HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+from fastapi import HTTPException, Depends, status
+from jose import jwt
 from passlib.context import CryptContext
 from starlette.responses import JSONResponse
 from datetime import datetime, timedelta
-from typing import Optional
-from fastapi import HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-from fastapi import HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
-from starlette.responses import JSONResponse
+from app.common.database.database import Database
 
 from models import UserInDB
 
-SECRET_KEY = "MY_SUPER_SECRET_KEY"
+SECRET_KEY = "MY_SUPER_SECRET_KEY" # Вынести в сикрет/env
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 1
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-# заглушка для базы данных
-fake_users_db = {
-    "johndoe": {
-        "username": "johndoe",
-        "hashed_password": "$2a$12$T52FRodwYdptly6j/kUfQuR5Rno05hCFk3Z8mN2phKfywpjMU4na",
-    }
-}
-
-###
-# Utils
-###
-
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
-def get_password_hash(password):
-    return pwd_context.hash(password)
-
-def authenticate_user(username: str, password: str):
-    if username not in fake_users_db:
-        return None
-    db_user = UserInDB(**fake_users_db[username])
-    if not verify_password(password, db_user.hashed_password):
-        return None
-    return db_user
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-def decode_token(token: str):
-    try:
-        decoded_token = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username = decoded_token.get("sub")
-        if username is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Could not validate credentials"
-            )
-        token_data = {"token": token, "username": username}
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials"
-        )
-    return token_data
 
 class AuthService:
     async def register(username: str, password: str) -> JSONResponse:
-        if username in fake_users_db:
+        if username in Database.users:
             raise HTTPException(status_code=400, detail="Username already registered")
         hashed_password = get_password_hash(password)
-        fake_users_db[username] = {"username": username, "hashed_password": hashed_password}
+        Database.users[username] = {"username": username, "hashed_password": hashed_password}
         return JSONResponse(content={"message": "User registered successfully"})
 
     async def login(form_data: OAuth2PasswordRequestForm = Depends()) -> JSONResponse:
@@ -93,14 +32,6 @@ class AuthService:
             expires_delta=access_token_expires
         )
         return JSONResponse(content={"access_token": access_token, "token_type": "bearer"})
-
-    async def get_user(token: str = Depends(oauth2_scheme)) -> JSONResponse:
-        token_data = decode_token(token)
-        authenticated_user = fake_users_db.get(token_data["username"])
-        if not authenticated_user:
-            raise HTTPException(status_code=401, detail="Could not validate credentials")
-        return JSONResponse(content={"user": authenticated_user})
-
 
     async def login_for_access_token(
         form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
@@ -117,3 +48,32 @@ class AuthService:
             data={"sub": user.username}, expires_delta=access_token_expires
         )
         return JSONResponse(content={"access_token": access_token, "token_type": "bearer"})
+    
+###
+# Utils
+###
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+def authenticate_user(username: str, password: str):
+    if username not in Database.users:
+        return None
+    db_user = UserInDB(**Database.users[username])
+    if not verify_password(password, db_user.hashed_password):
+        return None
+    return db_user
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+

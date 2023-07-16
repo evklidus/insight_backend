@@ -1,15 +1,20 @@
 import re
 from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.params import Depends
 from starlette.responses import StreamingResponse
+from app.common.utils.decode_token import decode_token
 from models import *
 from fastapi.responses import StreamingResponse
 from pathlib import Path
 from app.core.controllers.router import api_router
+from app.common.database.database import Database
+from app.common.oauth2_scheme import oauth2_scheme
 
 app = FastAPI()
 
-app.include_router(api_router)
+app.include_router(api_router) # сейчас архитектурно реальзована только auth
 
+# Вынести в сервисы
 categories = [
     Category(name= "Спорт", image_url= "https://images.unsplash.com/photo-1518611012118-696072aa579a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=3540&q=80", tag= "sport"),
     Category(name= "Программирование", image_url= "https://images.unsplash.com/photo-1605379399642-870262d3d051?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=3893&q=80", tag= "programming")
@@ -59,10 +64,18 @@ def get_course_page_by_id(id: int):
         if course_page.id == id:
             return course_page
     raise HTTPException(status_code=404, detail="Course page not found")
+
+@app.get("/get_user")
+async def get_user(token: str = Depends(oauth2_scheme)) -> User:
+        token_data = decode_token(token)
+        authenticated_user = Database.users.get(token_data["username"])
+        if not authenticated_user:
+            raise HTTPException(status_code=401, detail="Could not validate credentials")
+        return authenticated_user
     
 @app.get("/videos/{index}")
 def get_video_by_id(request: Request, index: int):
-    video_path = Path("assets/videos/" + videos[index])
+    video_path = Path("app/assets/videos/" + videos[index])
 
     if not video_path.exists():
         return Response(status_code=404)
