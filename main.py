@@ -1,68 +1,20 @@
-from datetime import timedelta
 import re
-from fastapi import FastAPI, HTTPException, Depends, status, Request, Response
-from fastapi.security import OAuth2PasswordRequestForm
-from starlette.responses import JSONResponse, StreamingResponse
-import os
-
-from auth import ACCESS_TOKEN_EXPIRE_MINUTES, AuthHandler, oauth2_scheme, fake_users_db
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.params import Depends
+from starlette.responses import StreamingResponse
+from app.common.utils.decode_token import decode_token
 from models import *
-
-from typing import List
-from pydantic import BaseModel
-from fastapi.responses import FileResponse, StreamingResponse
-from typing import Annotated
+from fastapi.responses import StreamingResponse
 from pathlib import Path
+from app.core.controllers.router import api_router
+from app.common.database.database import Database
+from app.common.oauth2_scheme import oauth2_scheme
 
 app = FastAPI()
 
-@app.post("/register")
-async def register(username: str, password: str):
-    if username in fake_users_db:
-        raise HTTPException(status_code=400, detail="Username already registered")
-    hashed_password = AuthHandler.get_password_hash(password)
-    fake_users_db[username] = {"username": username, "hashed_password": hashed_password}
-    return JSONResponse(content={"message": "User registered successfully"})
+app.include_router(api_router) # сейчас архитектурно реальзована только auth
 
-@app.post("/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    if not (authenticated_user := AuthHandler.authenticate_user(form_data.username, form_data.password)):
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = AuthHandler.create_access_token(
-        data={"sub": authenticated_user.username},
-        expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
-
-@app.get("/get_user")
-async def get_user(token: str = Depends(oauth2_scheme)):
-    token_data = AuthHandler.decode_token(token)
-    authenticated_user = fake_users_db.get(token_data["username"])
-    if not authenticated_user:
-        raise HTTPException(status_code=400, detail="Could not validate credentials")
-    return JSONResponse(content={"user": authenticated_user})
-
-
-@app.post("/token", response_model=Token)
-async def login_for_access_token(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
-):
-    user = AuthHandler.authenticate_user(form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = AuthHandler.create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
-
-
-
+# Вынести в сервисы
 categories = [
     Category(name= "Спорт", image_url= "https://images.unsplash.com/photo-1518611012118-696072aa579a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=3540&q=80", tag= "sport"),
     Category(name= "Программирование", image_url= "https://images.unsplash.com/photo-1605379399642-870262d3d051?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=3893&q=80", tag= "programming")
@@ -112,10 +64,18 @@ def get_course_page_by_id(id: int):
         if course_page.id == id:
             return course_page
     raise HTTPException(status_code=404, detail="Course page not found")
+
+@app.get("/get_user")
+async def get_user(token: str = Depends(oauth2_scheme)) -> User:
+        token_data = decode_token(token)
+        authenticated_user = Database.users.get(token_data["username"])
+        if not authenticated_user:
+            raise HTTPException(status_code=401, detail="Could not validate credentials")
+        return authenticated_user
     
 @app.get("/videos/{index}")
 def get_video_by_id(request: Request, index: int):
-    video_path = Path(videos[index])
+    video_path = Path("app/assets/videos/" + videos[index])
 
     if not video_path.exists():
         return Response(status_code=404)
