@@ -3,7 +3,7 @@ from typing import List
 from typing import Optional
 
 class User(BaseModel):
-    id: int
+    id: str
     username: str
     email: Optional[str]
     avatar_url: Optional[str]
@@ -16,6 +16,7 @@ class UserInDB(User):
 
     def to_user(self):
         return User(
+            id=self.id,
             username=self.username,
             email=self.email,
             avatar_url=self.avatar_url,

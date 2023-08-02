@@ -6,6 +6,7 @@ from starlette.responses import JSONResponse
 from datetime import datetime, timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from app.common.database.database import Database
+import uuid
 
 from models import UserInDB
 
@@ -20,7 +21,8 @@ class AuthService:
         if username in Database.users:
             raise HTTPException(status_code=400, detail="Username already registered")
         hashed_password = get_password_hash(password)
-        Database.users[username] = {"username": username, "hashed_password": hashed_password}
+        id = uuid.uuid4().hex
+        Database.users[username] = {"id": id, "username": username, "hashed_password": hashed_password}
         return JSONResponse(content={"message": "User registered successfully"})
 
     async def login(form_data: OAuth2PasswordRequestForm = Depends()) -> JSONResponse:
