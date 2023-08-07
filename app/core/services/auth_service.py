@@ -5,10 +5,10 @@ from passlib.context import CryptContext
 from starlette.responses import JSONResponse
 from datetime import datetime, timedelta
 from fastapi.security import OAuth2PasswordRequestForm
-from app.common.database.database import Database
+from ...common.database.db import Database
 import uuid
 
-from models import UserInDB
+from ...models import UserInDB
 
 SECRET_KEY = "MY_SUPER_SECRET_KEY" # Вынести в сикрет/env
 ALGORITHM = "HS256"

@@ -4,7 +4,7 @@ from smtplib import SMTPException
 import statistics
 from jose import JWTError, jwt
 
-from app.core.services.auth_service import ALGORITHM, SECRET_KEY
+from ...core.services.auth_service import ALGORITHM, SECRET_KEY
 
 
 def decode_token(token: str):

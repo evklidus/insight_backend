@@ -2,13 +2,13 @@ import re
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.params import Depends
 from starlette.responses import StreamingResponse
-from app.common.utils.decode_token import decode_token
-from models import *
+from .common.utils.decode_token import decode_token
+from .models import *
 from fastapi.responses import StreamingResponse
 from pathlib import Path
-from app.core.controllers.router import api_router
-from app.common.database.database import Database
-from app.common.oauth2_scheme import oauth2_scheme
+from .core.controllers.router import api_router
+from .common.database.db import Database
+from .common.oauth2_scheme import oauth2_scheme
 
 app = FastAPI()
 

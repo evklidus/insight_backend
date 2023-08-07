@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from starlette.responses import JSONResponse
-from app.core.models.token import Token
+from ....core.models.token import Token
 from typing import Annotated
-from app.core.services.auth_service import AuthService
-from app.common.oauth2_scheme import oauth2_scheme
+from ....core.services.auth_service import AuthService
 
 router = APIRouter()
 
